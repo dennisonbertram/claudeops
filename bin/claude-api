@@ -54,20 +54,22 @@ if [ -z "$PROMPT" ]; then
     exit 1
 fi
 
-# Create request JSON
-REQUEST_JSON=$(cat <<EOF
-{
-  "model": "$MODEL",
-  "max_tokens": $MAX_TOKENS,
-  "messages": [
-    {
-      "role": "user",
-      "content": "$PROMPT"
-    }
-  ]
-}
-EOF
-)
+# Create request JSON with properly escaped prompt
+# Use jq to safely build the JSON to avoid escaping issues
+REQUEST_JSON=$(jq -n \
+    --arg model "$MODEL" \
+    --arg prompt "$PROMPT" \
+    --argjson max_tokens "$MAX_TOKENS" \
+    '{
+        model: $model,
+        max_tokens: $max_tokens,
+        messages: [
+            {
+                role: "user",
+                content: $prompt
+            }
+        ]
+    }')
 
 # Make API request
 RESPONSE=$(curl -s -X POST "$ANTHROPIC_API_URL" \
