@@ -63,14 +63,14 @@ if ! command -v claude &> /dev/null; then
     echo "ClaudeOps requires the Claude Code CLI to function."
     echo ""
     echo "Installation options:"
-    echo "  1. npm install -g @anthropics/claude-code"
-    echo "  2. Visit: https://github.com/anthropics/claude-code"
+    echo "  1. npm install -g @anthropic-ai/claude-code"
+    echo "  2. Visit: https://docs.anthropic.com/claude-code"
     echo ""
     read -p "Would you like me to install it via npm now? (y/n) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         if command -v npm &> /dev/null; then
-            npm install -g @anthropics/claude-code
+            npm install -g @anthropic-ai/claude-code
         else
             echo -e "${RED}ERROR: npm not found. Please install Node.js and npm first.${NC}"
             exit 1
