@@ -165,7 +165,7 @@ This is a brand new project. Contributions, ideas, and feedback welcome!
 
 ## License
 
-MIT (to be added)
+MIT License - See [LICENSE](LICENSE) file for details
 
 ## Authors
 
