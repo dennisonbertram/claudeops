@@ -120,9 +120,9 @@ IMPORTANT: Create action logs in: $LOG_BASE/actions/
 Begin boot recovery now. Bring all services online in the correct order.
 EOF
 
-# Run Claude Code with the prepared prompt
-echo "[$(date)] Starting Claude Code for boot recovery..." >> "$LOG_BASE/claudeops.log"
-claude --prompt "$(cat "$TEMP_PROMPT")" 2>&1 | tee -a "$LOG_BASE/claudeops.log"
+# Run Claude API with the prepared prompt
+echo "[$(date)] Starting Claude API for boot recovery..." >> "$LOG_BASE/claudeops.log"
+claude-api --prompt "$(cat "$TEMP_PROMPT")" --print 2>&1 | tee -a "$LOG_BASE/claudeops.log"
 
 # Cleanup
 rm -f "$TEMP_PROMPT"

@@ -88,8 +88,8 @@ echo ""
 echo "Press Enter to continue..."
 read
 
-# Run Claude Code with the setup prompt
-claude --prompt "$(cat $TEMP_PROMPT)"
+# Run Claude API with the setup prompt
+claude-api --prompt "$(cat $TEMP_PROMPT)"
 
 # Cleanup
 rm -f "$TEMP_PROMPT"

@@ -112,9 +112,9 @@ EOF
 # Log that we're starting
 echo "[$(date)] ClaudeOps health check starting..." >> "$LOG_BASE/claudeops.log"
 
-# Run Claude Code with the prepared prompt
+# Run Claude API with the prepared prompt
 # Redirect output to both stdout and the log file
-claude --prompt "$(cat "$TEMP_PROMPT")" 2>&1 | tee -a "$LOG_BASE/claudeops.log"
+claude-api --prompt "$(cat "$TEMP_PROMPT")" --print 2>&1 | tee -a "$LOG_BASE/claudeops.log"
 
 # Cleanup
 rm -f "$TEMP_PROMPT"

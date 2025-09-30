@@ -83,4 +83,64 @@ Location: /usr/bin/claude
 
 ---
 
+---
+
 ## ClaudeOps Installation
+
+### Step 4: Installing ClaudeOps
+```bash
+curl -fsSL https://raw.githubusercontent.com/dennisonbertram/claudeops/main/install.sh | bash
+```
+**Result:** ✓ SUCCESS
+```
+ClaudeOps v1.0.0 installed to /usr/local/bin/
+- claudeops (main CLI)
+- claudeops-cron (scheduled health checks)
+- claudeops-boot (boot recovery)
+- claudeops-setup (setup wizard)
+
+Health check library: /usr/local/lib/claudeops/
+Prompts: /usr/local/share/claudeops/prompts/
+Config: /etc/claudeops/config.json.example
+Logs: /var/log/claudeops/{health,issues,actions,boot}/
+```
+
+---
+
+## 🚨 **Critical Discovery #2: Claude Code CLI Authentication Model**
+
+### The Problem
+Claude Code CLI is designed for **interactive, OAuth-based authentication**, not API key authentication for server automation.
+
+**What we tried:**
+1. Setting `ANTHROPIC_API_KEY` environment variable → Still requires `/login`
+2. Adding `externalApiKey` to `.claude.json` config → Still requires `/login`
+3. The CLI expects users to authenticate via web browser (OAuth flow)
+
+**Why this matters:**
+- ClaudeOps was designed to run autonomously on servers (cron, boot scripts)
+- Autonomous operation requires non-interactive authentication
+- The provided API key (`sk-ant-api03-...`) is for **direct API access**, not CLI authentication
+
+### The Solution: Two Paths Forward
+
+**Option A: Modify ClaudeOps to Use Anthropic API Directly** ⚡ (Recommended)
+- Replace `claude --prompt` calls with HTTP requests to `https://api.anthropic.com/v1/messages`
+- Use the provided API key (`sk-ant-api03-...`) in HTTP headers
+- Maintains all ClaudeOps functionality with proper server automation
+- **Time:** 1-2 hours to implement
+
+**Option B: Interactive Initial Auth + Token Caching**
+- Run `claude setup-token` once interactively
+- Cache the authentication token
+- Hope it works for non-interactive subsequent runs
+- **Risk:** May still fail for headless automation
+
+**Option C: Hybrid Architecture**
+- Detect if Claude CLI is authenticated
+- Fall back to API mode if not
+- Best of both worlds but more complex
+
+---
+
+## Decision Required

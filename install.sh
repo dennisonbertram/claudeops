@@ -55,33 +55,21 @@ if ! command -v git &> /dev/null; then
     fi
 fi
 
-# Check if Claude Code is installed
-echo "Checking for Claude Code CLI..."
-if ! command -v claude &> /dev/null; then
-    echo -e "${YELLOW}Claude Code CLI not found!${NC}"
-    echo ""
-    echo "ClaudeOps requires the Claude Code CLI to function."
-    echo ""
-    echo "Installation options:"
-    echo "  1. npm install -g @anthropic-ai/claude-code"
-    echo "  2. Visit: https://docs.anthropic.com/claude-code"
-    echo ""
-    read -p "Would you like me to install it via npm now? (y/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        if command -v npm &> /dev/null; then
-            npm install -g @anthropic-ai/claude-code
-        else
-            echo -e "${RED}ERROR: npm not found. Please install Node.js and npm first.${NC}"
-            exit 1
-        fi
+# Check for jq (needed for API wrapper)
+echo "Checking for jq (JSON processor)..."
+if ! command -v jq &> /dev/null; then
+    echo -e "${YELLOW}jq not found, installing...${NC}"
+    if command -v apt-get &> /dev/null; then
+        apt-get install -y jq
+    elif command -v yum &> /dev/null; then
+        yum install -y jq
     else
-        echo -e "${RED}Installation aborted. Please install Claude Code CLI first.${NC}"
+        echo -e "${RED}ERROR: Could not install jq. Please install it manually.${NC}"
         exit 1
     fi
 fi
 
-echo -e "${GREEN}✓ Claude Code CLI found${NC}"
+echo -e "${GREEN}✓ jq found${NC}"
 echo ""
 
 # Clone or update repository
@@ -105,10 +93,12 @@ cp bin/claudeops "$INSTALL_DIR/"
 cp bin/claudeops-setup "$INSTALL_DIR/"
 cp bin/claudeops-cron "$INSTALL_DIR/"
 cp bin/claudeops-boot "$INSTALL_DIR/"
+cp bin/claude-api "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/claudeops"
 chmod +x "$INSTALL_DIR/claudeops-setup"
 chmod +x "$INSTALL_DIR/claudeops-cron"
 chmod +x "$INSTALL_DIR/claudeops-boot"
+chmod +x "$INSTALL_DIR/claude-api"
 echo -e "${GREEN}✓ Binaries installed${NC}"
 
 # Install library

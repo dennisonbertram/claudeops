@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Claude API Wrapper for ClaudeOps
+# Calls the Anthropic API directly for headless server automation
+# Usage: claude-api --prompt "Your prompt here" [--model model-name]
+
+ANTHROPIC_API_URL="https://api.anthropic.com/v1/messages"
+DEFAULT_MODEL="claude-sonnet-4-5-20250929"
+MAX_TOKENS=8000
+
+# Parse arguments
+PROMPT=""
+MODEL="$DEFAULT_MODEL"
+PRINT_MODE=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --prompt)
+            PROMPT="$2"
+            shift 2
+            ;;
+        --model)
+            MODEL="$2"
+            shift 2
+            ;;
+        --print|-p)
+            PRINT_MODE=true
+            shift
+            ;;
+        *)
+            # If no flag, assume it's the prompt
+            PROMPT="$1"
+            shift
+            ;;
+    esac
+done
+
+# Check for API key
+if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+    echo "Error: ANTHROPIC_API_KEY environment variable not set" >&2
+    echo "Set it in /etc/claudeops/.env or export it" >&2
+    exit 1
+fi
+
+# Read prompt from stdin if not provided as argument
+if [ -z "$PROMPT" ]; then
+    PROMPT=$(cat)
+fi
+
+if [ -z "$PROMPT" ]; then
+    echo "Error: No prompt provided" >&2
+    echo "Usage: claude-api --prompt \"Your prompt\" [--model model-name]" >&2
+    exit 1
+fi
+
+# Create request JSON
+REQUEST_JSON=$(cat <<EOF
+{
+  "model": "$MODEL",
+  "max_tokens": $MAX_TOKENS,
+  "messages": [
+    {
+      "role": "user",
+      "content": "$PROMPT"
+    }
+  ]
+}
+EOF
+)
+
+# Make API request
+RESPONSE=$(curl -s -X POST "$ANTHROPIC_API_URL" \
+    -H "Content-Type: application/json" \
+    -H "x-api-key: $ANTHROPIC_API_KEY" \
+    -H "anthropic-version: 2023-06-01" \
+    -d "$REQUEST_JSON")
+
+# Check for API errors
+if echo "$RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
+    ERROR_TYPE=$(echo "$RESPONSE" | jq -r '.error.type')
+    ERROR_MESSAGE=$(echo "$RESPONSE" | jq -r '.error.message')
+    echo "Error: API returned error type '$ERROR_TYPE': $ERROR_MESSAGE" >&2
+    exit 1
+fi
+
+# Extract and output the response text
+if [ "$PRINT_MODE" = true ]; then
+    # In print mode, just output the text
+    echo "$RESPONSE" | jq -r '.content[0].text'
+else
+    # In interactive mode, format it nicely
+    echo "=== Claude Response ==="
+    echo ""
+    echo "$RESPONSE" | jq -r '.content[0].text'
+    echo ""
+    echo "=== End Response ==="
+fi
+
+exit 0
