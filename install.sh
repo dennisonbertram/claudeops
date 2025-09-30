@@ -18,8 +18,8 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Where to download from (update with real repo URL)
-REPO_URL="${REPO_URL:-https://github.com/USERNAME/claudeops}"
+# Where to download from
+REPO_URL="${REPO_URL:-https://github.com/dennisonbertram/claudeops}"
 BRANCH="${BRANCH:-main}"
 
 echo -e "${BLUE}"

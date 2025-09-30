@@ -61,7 +61,7 @@ Traditional monitoring is **reactive** (alerts when broken) and **rule-based** (
 
 ```bash
 # One-command installation
-curl -fsSL https://raw.githubusercontent.com/USERNAME/claudeops/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/dennisonbertram/claudeops/main/install.sh | sudo bash
 
 # Run the interactive setup wizard
 sudo claudeops setup

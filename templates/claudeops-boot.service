@@ -1,6 +1,6 @@
 [Unit]
 Description=ClaudeOps Boot Recovery Service
-Documentation=https://github.com/USERNAME/claudeops
+Documentation=https://github.com/dennisonbertram/claudeops
 After=network-online.target
 Wants=network-online.target
 

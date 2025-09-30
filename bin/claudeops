@@ -50,7 +50,7 @@ Configuration:
   Config file:   $CONFIG_FILE
   Example:       $CONFIG_FILE.example
 
-For more information, visit: https://github.com/USERNAME/claudeops
+For more information, visit: https://github.com/dennisonbertram/claudeops
 EOF
 }
 
