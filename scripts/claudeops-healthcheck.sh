@@ -24,41 +24,50 @@ $(cat "$log")"
     fi
 done
 
+# Load the system prompt
+SYSTEM_PROMPT=""
+if [ -f "$CLAUDEOPS_DIR/prompts/system-prompt.md" ]; then
+    SYSTEM_PROMPT=$(cat "$CLAUDEOPS_DIR/prompts/system-prompt.md")
+else
+    SYSTEM_PROMPT="You are ClaudeOps, an autonomous server administrator."
+fi
+
+# Count unresolved issues
+UNRESOLVED_COUNT=$(find "$LOG_DIR/issues" -name "*.md" -type f 2>/dev/null | xargs grep -L "RESOLVED" 2>/dev/null | wc -l || echo "0")
+
+# Get system uptime
+UPTIME=$(uptime -p)
+
 # Create the prompt for Claude
-cat > /tmp/claude-healthcheck-prompt.txt << 'EOF'
-You are ClaudeOps, an autonomous server administrator. Perform a comprehensive health check of this server and write a detailed report.
+cat > /tmp/claude-healthcheck-prompt.txt << EOF
+$SYSTEM_PROMPT
 
-CONTEXT FROM PREVIOUS RUNS:
-${CONTEXT}
+## Current Session Context
+- **Invoked by**: cron (scheduled health check)
+- **Timestamp**: $(date -Iseconds)
+- **Previous runs context**: Available below
+- **Unresolved issues**: $UNRESOLVED_COUNT
+- **System uptime**: $UPTIME
+- **Health log path**: $HEALTH_LOG
 
-HEALTH CHECK TASKS:
-1. Check system resources (CPU, memory, disk usage)
-2. Verify all critical services are running (use systemctl, docker ps, pm2 list)
-3. Check network connectivity and DNS resolution
-4. Review recent system logs for errors (/var/log/syslog, journalctl -xe)
-5. Check for security updates (apt list --upgradable)
-6. Monitor database connections if applicable
-7. Verify web services are responding (curl localhost endpoints)
-8. Check disk I/O and any slow queries
-9. Review cron jobs and scheduled tasks
+## Previous Health Checks Context
+$CONTEXT
 
-OUTPUT FORMAT:
-Write a markdown report with:
-- Timestamp and server info
-- System health summary (GREEN/YELLOW/RED status)
-- Detailed findings for each check
-- Any issues discovered
-- Actions taken (if any)
-- Recommendations for manual intervention (if needed)
+## Your Task
 
-If you find critical issues:
-1. Try to fix them automatically if safe to do so
-2. Document what you did in the action log
-3. Alert if manual intervention is required
+Perform a comprehensive health check following your operational guidelines. Remember to:
 
-Write your report to: ${HEALTH_LOG}
+1. Check all system resources and services
+2. Review logs for errors and patterns
+3. Compare with previous health checks for trends
+4. Take safe corrective actions when needed
+5. Document everything clearly
 
-Remember: You have full bash access. Use it wisely to diagnose and fix issues.
+Write your health check report to: $HEALTH_LOG
+
+The report should follow the format specified in your system prompt. Be thorough but concise. Focus on actionable information.
+
+Remember: You have full system access. You are trusted to keep this server healthy.
 EOF
 
 # Run Claude Code with the health check prompt

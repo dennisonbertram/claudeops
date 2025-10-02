@@ -27,6 +27,11 @@ scp scripts/server-setup.sh ${SERVER_USER}@${SERVER_IP}:/tmp/
 scp scripts/claudeops-healthcheck.sh ${SERVER_USER}@${SERVER_IP}:/tmp/
 scp scripts/claudeops-boot.sh ${SERVER_USER}@${SERVER_IP}:/tmp/
 scp scripts/claudeops-boot.service ${SERVER_USER}@${SERVER_IP}:/tmp/
+scp scripts/test-claudeops.sh ${SERVER_USER}@${SERVER_IP}:/tmp/
+
+# Copy the system prompt
+echo "Copying ClaudeOps system prompt..."
+scp prompts/claudeops-system-prompt.md ${SERVER_USER}@${SERVER_IP}:/tmp/
 
 # Now SSH into the server and run the setup
 echo "Connecting to server to run setup..."
@@ -43,7 +48,12 @@ chmod +x /tmp/server-setup.sh
 echo "Installing ClaudeOps scripts..."
 cp /tmp/claudeops-healthcheck.sh /opt/claudeops/bin/
 cp /tmp/claudeops-boot.sh /opt/claudeops/bin/
+cp /tmp/test-claudeops.sh /opt/claudeops/bin/
 chmod +x /opt/claudeops/bin/*.sh
+
+# Copy the system prompt
+echo "Installing ClaudeOps system prompt..."
+cp /tmp/claudeops-system-prompt.md /opt/claudeops/prompts/system-prompt.md
 
 # Install systemd service for boot recovery
 echo "Installing systemd service..."
@@ -64,10 +74,11 @@ echo "ClaudeOps deployment complete!"
 echo "======================================"
 echo ""
 echo "Next steps:"
-echo "1. SSH into the server: ssh root@$SERVER_IP"
+echo "1. SSH into the server: ssh root@65.21.67.254"
 echo "2. Configure Claude API key: claude auth login"
-echo "3. Test the installation: /opt/claudeops/test-claude.sh"
-echo "4. Run manual health check: /opt/claudeops/bin/claudeops-healthcheck.sh"
+echo "3. Test basic installation: /opt/claudeops/test-claude.sh"
+echo "4. Test ClaudeOps functionality: /opt/claudeops/bin/test-claudeops.sh"
+echo "5. Run manual health check: /opt/claudeops/bin/claudeops-healthcheck.sh"
 echo ""
 echo "The system will:"
 echo "- Run health checks every 2 hours via cron"

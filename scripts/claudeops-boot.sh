@@ -35,52 +35,50 @@ $(cat "$issue")"
     fi
 done
 
+# Load the system prompt
+SYSTEM_PROMPT=""
+if [ -f "$CLAUDEOPS_DIR/prompts/system-prompt.md" ]; then
+    SYSTEM_PROMPT=$(cat "$CLAUDEOPS_DIR/prompts/system-prompt.md")
+else
+    SYSTEM_PROMPT="You are ClaudeOps, an autonomous server administrator."
+fi
+
+# Get boot reason if available
+BOOT_REASON=$(last reboot | head -1 | cut -d' ' -f5- || echo "Unknown")
+
 # Create the boot recovery prompt for Claude
-cat > /tmp/claude-boot-prompt.txt << 'EOF'
-You are ClaudeOps, performing boot recovery after a system restart. Your job is to ensure all services are properly started and the system is healthy.
+cat > /tmp/claude-boot-prompt.txt << EOF
+$SYSTEM_PROMPT
 
-BOOT TIME: ${TIMESTAMP}
+## Current Session Context
+- **Invoked by**: systemd (boot recovery)
+- **Boot timestamp**: $(date -Iseconds)
+- **Boot reason**: $BOOT_REASON
+- **Unresolved issues**: Found below
+- **Boot log path**: $BOOT_LOG
 
-CONTEXT:
-Last health check before shutdown:
-${LAST_HEALTH_CONTENT}
+## Last Health Check Before Shutdown
+$LAST_HEALTH_CONTENT
 
-${UNRESOLVED_ISSUES}
+## Unresolved Issues
+$UNRESOLVED_ISSUES
 
-BOOT RECOVERY TASKS:
-1. Check system boot logs (journalctl -b)
-2. Verify network connectivity
-3. Start critical services in order:
-   - Database services (PostgreSQL, MySQL, Redis)
-   - Application servers (Node.js apps via PM2)
-   - Web servers (Nginx, Apache)
-   - Monitoring services
-4. Wait for services to be ready (check ports, test connections)
-5. Run application-specific startup tasks:
-   - Database migrations
-   - Cache warming
-   - Health endpoint verification
-6. Verify all cron jobs are registered
-7. Check for failed services and attempt recovery
-8. Test critical application endpoints
+## Your Task: Boot Recovery
 
-OUTPUT FORMAT:
-Write a markdown report to: ${BOOT_LOG}
+The system has just started/restarted. You must ensure all services are properly initialized and the system is healthy. Follow your boot recovery guidelines:
 
-Include:
-- Boot timestamp and reason for restart (if available)
-- Services started and their status
-- Any errors encountered and how they were resolved
-- System health after boot
-- Any manual intervention needed
+1. **Diagnose the restart**: Check if it was planned or unplanned
+2. **Start services in order**: Respect dependencies (databases before apps)
+3. **Verify readiness**: Don't proceed until each service is actually ready
+4. **Run startup tasks**: Migrations, cache warming, etc.
+5. **Test everything**: Verify all critical endpoints respond correctly
+6. **Document the process**: Write a complete boot recovery report
 
-IMPORTANT:
-- Start services with proper dependency order
-- Wait for databases before starting apps
-- Log all actions taken
-- Alert if critical services fail to start
+Write your boot recovery report to: $BOOT_LOG
 
-Use systemctl, pm2, docker, and other tools as needed.
+CRITICAL: If any essential service fails to start, document the issue clearly and provide specific steps for manual intervention.
+
+Remember: The system depends on you to recover properly from restarts. Be methodical and thorough.
 EOF
 
 # Run Claude Code for boot recovery
