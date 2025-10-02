@@ -1,0 +1,17 @@
+[Unit]
+Description=ClaudeOps Boot Recovery Service
+After=network-online.target
+Wants=network-online.target
+After=postgresql.service mysql.service redis.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/claudeops/bin/claudeops-boot.sh
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/nvm/versions/node/v20.11.0/bin"
+Environment="NVM_DIR=/opt/nvm"
+
+[Install]
+WantedBy=multi-user.target

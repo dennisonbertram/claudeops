@@ -60,7 +60,18 @@ ClaudeOps has successfully completed its **first deployment and autonomous healt
 
 ## Deployment Guide (For Today)
 
-Want to use ClaudeOps right now? Here's how:
+### Important: Hetzner Bare Metal Setup
+
+**If deploying to Hetzner bare metal server**, you must first install a permanent OS:
+
+1. **See `docs/HETZNER_SETUP.md`** for complete Hetzner-specific instructions
+2. Run `installimage` in rescue system to install Debian 12
+3. Reboot into persistent OS
+4. Then follow ClaudeOps installation below
+
+**Previous deployment was on ephemeral rescue system** - all changes lost on reboot!
+
+### Standard Installation (Persistent OS)
 
 ### Step 1: Install
 ```bash

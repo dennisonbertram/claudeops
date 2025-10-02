@@ -2,8 +2,10 @@
 
 **Date:** September 30, 2025
 **Duration:** ~3 hours from concept to first health check
-**Server:** Hetzner 65.21.67.254 (Debian 12 rescue system)
-**Status:** ✅ **SUCCESSFUL** - Proof-of-concept validated
+**Server:** Hetzner 65.21.67.254 (Debian 12 rescue system - EPHEMERAL)
+**Status:** ⚠️ **PROOF-OF-CONCEPT VALIDATED** - Tested on temporary rescue system
+
+**CRITICAL NOTE:** Initial deployment was on Hetzner Rescue System (RAM-based, ephemeral). All installations lost on reboot. See `docs/HETZNER_SETUP.md` for correct permanent installation process.
 
 ---
 
