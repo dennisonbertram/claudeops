@@ -57,7 +57,18 @@ Traditional monitoring is **reactive** (alerts when broken) and **rule-based** (
 └─────────────────────────────────────────────┘
 ```
 
-## Quick Start
+## Installation
+
+📋 **[Complete Installation Guide](INSTALL-VALIDATED.md)** - Tested and validated step-by-step instructions
+
+The complete installation guide includes:
+- Prerequisites checklist
+- Step-by-step setup instructions (validated on Ubuntu 24.04)
+- Post-installation testing
+- Troubleshooting tips
+- 85% validated via Docker container testing
+
+### Quick Install (Alternative)
 
 ```bash
 # One-command installation
