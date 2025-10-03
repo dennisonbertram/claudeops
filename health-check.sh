@@ -15,16 +15,17 @@ log "=========================================="
 log "ClaudeOps Health Check Starting"
 log "=========================================="
 
-# Load NVM and set PATH
+# Load NVM and set PATH - try multiple locations
 export HOME=/home/claude
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-# Fallback: if NVM installed as root
-if [ ! -f "$NVM_DIR/nvm.sh" ]; then
-    export NVM_DIR="/root/.nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-fi
+# Try common NVM locations in order
+for nvm_path in "/opt/nvm" "$HOME/.nvm" "/root/.nvm"; do
+    if [ -s "$nvm_path/nvm.sh" ]; then
+        export NVM_DIR="$nvm_path"
+        . "$NVM_DIR/nvm.sh"
+        break
+    fi
+done
 
 # Add node to PATH
 export PATH="$NVM_DIR/versions/node/v22.20.0/bin:$PATH"

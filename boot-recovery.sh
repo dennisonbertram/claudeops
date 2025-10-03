@@ -17,14 +17,14 @@ log "=========================================="
 log "Waiting 30 seconds for system to stabilize..."
 sleep 30
 
-# Load NVM and set PATH - try both user and root locations
-export NVM_DIR="/root/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
-if [ ! -f "$NVM_DIR/nvm.sh" ]; then
-    export NVM_DIR="/home/claude/.nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-fi
+# Load NVM and set PATH - try multiple locations
+for nvm_path in "/opt/nvm" "/root/.nvm" "/home/claude/.nvm"; do
+    if [ -s "$nvm_path/nvm.sh" ]; then
+        export NVM_DIR="$nvm_path"
+        . "$NVM_DIR/nvm.sh"
+        break
+    fi
+done
 
 export PATH="$NVM_DIR/versions/node/v22.20.0/bin:$PATH"
 
