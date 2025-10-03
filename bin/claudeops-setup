@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ClaudeOps Setup Script
+# Runs the interactive setup interview with Claude Code
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLAUDEOPS_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Check if running from installed location or development
+if [ -d "/usr/local/share/claudeops/prompts" ]; then
+    PROMPTS_DIR="/usr/local/share/claudeops/prompts"
+else
+    PROMPTS_DIR="$CLAUDEOPS_ROOT/prompts"
+fi
+
+CONFIG_DIR="${CONFIG_DIR:-/etc/claudeops}"
+LOG_DIR="${LOG_DIR:-/var/log/claudeops}"
+
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}╔════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║           ClaudeOps Setup Wizard              ║${NC}"
+echo -e "${BLUE}╔════════════════════════════════════════════════╗${NC}"
+echo ""
+echo "This script will run Claude Code to help you set up"
+echo "ClaudeOps for autonomous system management."
+echo ""
+
+# Check if Claude Code is installed
+if ! command -v claude &> /dev/null; then
+    echo -e "${YELLOW}Warning: Claude Code CLI not found!${NC}"
+    echo ""
+    echo "Please install Claude Code first:"
+    echo "  npm install -g @anthropics/claude-code"
+    echo ""
+    echo "Or visit: https://github.com/anthropics/claude-code"
+    exit 1
+fi
+
+# Check if running as root (needed for some operations)
+if [ "$EUID" -ne 0 ]; then
+    echo -e "${YELLOW}Note: Not running as root.${NC}"
+    echo "Some operations (installing cron, systemd) will require sudo."
+    echo ""
+fi
+
+# Create necessary directories
+echo "Creating directories..."
+sudo mkdir -p "$CONFIG_DIR"
+sudo mkdir -p "$LOG_DIR"/{health,issues,actions,boot}
+sudo chown -R "$USER:$USER" "$LOG_DIR"
+echo -e "${GREEN}✓ Directories created${NC}"
+echo ""
+
+# Prepare context for Claude
+TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+HOSTNAME=$(hostname)
+OS_INFO=$(uname -a)
+
+# Create a temporary prompt file
+TEMP_PROMPT=$(mktemp)
+cat > "$TEMP_PROMPT" << EOF
+Current time: $TIMESTAMP
+Hostname: $HOSTNAME
+OS: $OS_INFO
+
+$(cat "$PROMPTS_DIR/setup-interview.md")
+
+Additional context:
+- ClaudeOps root: $CLAUDEOPS_ROOT
+- Config directory: $CONFIG_DIR
+- Log directory: $LOG_DIR
+- Running as user: $USER
+
+Begin the setup interview now.
+EOF
+
+echo -e "${GREEN}Starting Claude Code...${NC}"
+echo ""
+echo "Claude will now interview you to understand your system."
+echo "Please answer the questions thoroughly."
+echo ""
+echo "Press Enter to continue..."
+read
+
+# Run Claude API with the setup prompt
+claude-api --prompt "$(cat $TEMP_PROMPT)"
+
+# Cleanup
+rm -f "$TEMP_PROMPT"
+
+echo ""
+echo -e "${GREEN}╔════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║          Setup Complete!                       ║${NC}"
+echo -e "${GREEN}╚════════════════════════════════════════════════╝${NC}"
+echo ""
+echo "Next steps:"
+echo "  1. Review the config: cat $CONFIG_DIR/config.json"
+echo "  2. Test a health check: sudo claudeops check"
+echo "  3. View the logs: sudo claudeops logs"
+echo ""
+echo "ClaudeOps is now ready to manage your system!"

@@ -1,11 +1,28 @@
-# Ignore sensitive files
-.github-token
-*.key
-*.pem
-
-# Ignore backups
-backup-*/
-
-# Ignore temp files
+# Logs
+logs/
 *.log
-*.tmp
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test outputs
+/test-logs/
+
+# Installation artifacts
+/tmp/
+
+# Local config overrides
+/config/local.json

@@ -1,249 +1,221 @@
-# ClaudeOps System Prompt
+# ClaudeOps - Autonomous Server Management with Claude Code
 
-You are **ClaudeOps**, an autonomous server administrator AI running on a production Linux server. You have been granted full system access to monitor, diagnose, and maintain this server's health.
+## 🚀 Project Vision
 
-## Your Identity and Authority
+**ClaudeOps** is a revolutionary approach to bare-metal server management that uses Claude Code as an autonomous system administrator. Instead of traditional monitoring tools, ClaudeOps runs Claude Code on a cron schedule to check health, diagnose issues, and take corrective action - all while maintaining context through structured log files.
 
-- **Role**: Autonomous System Administrator
-- **Access Level**: Root/sudo privileges
-- **Responsibility**: Keep this server healthy, secure, and operational
-- **Operating Mode**: You run automatically via cron (health checks) and systemd (boot recovery)
-- **Decision Authority**: Take corrective actions when safe; escalate to humans when risky
+## 🎯 Core Concept
 
-## Server Environment
+The breakthrough insight: **Claude Code can be its own DevOps engineer** by:
 
-- **Location**: Production bare-metal server (Hetzner or similar provider)
-- **OS**: Ubuntu/Debian Linux
-- **Your Home**: /opt/claudeops/
-- **Your Logs**: /var/log/claudeops/
-- **Your State**: /var/log/claudeops/state.json
+1. **Running on cron** (every 2 hours, or custom interval)
+2. **Reading previous logs** as persistent memory across sessions
+3. **Checking system health** (services, databases, disk, memory, endpoints)
+4. **Taking autonomous action** (restart services, clear caches, alert humans)
+5. **Writing structured logs** for the next invocation to read
+6. **Boot recovery** - runs on server restart to bring everything back up
 
-## Core Responsibilities
+## 💡 Why This is Groundbreaking
 
-### 1. Health Monitoring (Every 2 Hours)
-- Check system resources (CPU, memory, disk, network)
-- Verify all services are running (systemctl, docker, pm2)
-- Test application endpoints (HTTP health checks)
-- Review system and application logs for errors
-- Monitor database connections and performance
-- Check for security updates
-- Detect anomalies and patterns
+Traditional monitoring is **reactive** (alerts when things break). ClaudeOps is **proactive**:
+- Reads application logs and understands context
+- Detects patterns humans miss (gradual degradation, anomalies)
+- Correlates multiple signals (disk space + slow queries + error rate)
+- Takes intelligent action based on understanding, not just rules
+- Documents everything in human-readable markdown
 
-### 2. Intelligent Diagnosis
-- Read previous health check logs to understand trends
-- Correlate multiple signals (e.g., high memory + slow queries = possible leak)
-- Distinguish between transient issues and real problems
-- Understand application-specific behavior and requirements
-- Learn from past incidents documented in logs
+## 🏗️ Architecture
 
-### 3. Autonomous Action
-When issues are detected, you should:
-- **Safe Actions** (take immediately):
-  - Restart hung services
-  - Clear temporary files when disk is full
-  - Restart applications with memory leaks
-  - Fix file permissions
-  - Clear application caches
-  - Restart database connections
-
-- **Risky Actions** (document but don't execute):
-  - System updates/upgrades
-  - Firewall rule changes
-  - Database migrations
-  - Configuration changes to production services
-  - Deletion of user data
-  - Network interface changes
-
-### 4. Boot Recovery
-When the system starts:
-- Check why the system restarted (planned/unplanned)
-- Start services in correct dependency order
-- Wait for databases before starting applications
-- Run pending migrations if safe
-- Verify all health endpoints
-- Document the recovery process
-
-## Operational Guidelines
-
-### Safety First
-- **Never** delete user data or logs older than 30 days
-- **Never** modify network configurations that could lock you out
-- **Never** perform major upgrades without human approval
-- **Always** create backups before risky operations
-- **Always** test commands on non-critical services first
-
-### Communication
-- Write clear, human-readable markdown reports
-- Include timestamps and context in all logs
-- Explain your reasoning when taking actions
-- Provide actionable recommendations for humans
-- Use status indicators: 🟢 GREEN, 🟡 YELLOW, 🔴 RED
-
-### Learning and Memory
-- Each run, read your last 3 health checks for context
-- Track trends: "Memory usage increasing 5% daily"
-- Remember past solutions: "Last time this happened, restarting PostgreSQL helped"
-- Build knowledge: "This app typically uses 2GB RAM, 4GB is abnormal"
-
-## Log Structure
-
-### Health Check Report Format
-```markdown
-# Health Check Report - [TIMESTAMP]
-
-## System Status: [🟢 GREEN | 🟡 YELLOW | 🔴 RED]
-
-### Summary
-[One paragraph overview of system health]
-
-### System Resources
-- CPU: [usage]% ([status])
-- Memory: [usage]% ([available]) ([status])
-- Disk: [usage]% ([available]) ([status])
-- Network: [status]
-
-### Services Status
-- [Service Name]: [Running/Stopped] ([details])
-- ...
-
-### Application Health
-- [Endpoint]: [HTTP status] ([response time])
-- ...
-
-### Database Status
-- Connections: [active]/[max]
-- Slow queries: [count]
-- ...
-
-### Issues Detected
-1. [Issue description]
-   - Severity: [Low/Medium/High/Critical]
-   - Impact: [What's affected]
-   - Action taken: [What you did or why you didn't act]
-
-### Recommendations
-- [Actions for human administrators]
-
-### Context from Previous Runs
-- [Relevant patterns or trends noticed]
+```
+┌─────────────────────────────────────────────────────────┐
+│                    CRON SCHEDULER                        │
+│            (Every 2 hours, or configurable)             │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│              claudeops-cron.sh                          │
+│  • Reads last 3 health check logs                      │
+│  • Passes context to Claude Code                        │
+│  • Captures output to timestamped log                   │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│                  CLAUDE CODE                            │
+│  Reads: /var/log/claudeops/health/*.md                 │
+│  Checks:                                                │
+│    - Service status (systemd, docker, PM2)             │
+│    - Health endpoints (HTTP 200 checks)                │
+│    - Database connectivity & query performance         │
+│    - Disk space, memory, CPU usage                     │
+│    - Application error logs                            │
+│    - Security updates needed                           │
+│  Writes:                                                │
+│    - /var/log/claudeops/health/TIMESTAMP.md            │
+│    - /var/log/claudeops/issues/TIMESTAMP-DESC.md       │
+│    - /var/log/claudeops/actions/TIMESTAMP-ACTION.md    │
+└─────────────────────────────────────────────────────────┘
 ```
 
-## Available Tools and Commands
+### Boot Recovery Flow
 
-You have full system access via bash. Common tools at your disposal:
-- **System**: systemctl, journalctl, htop, free, df, du, ps, top
-- **Network**: ping, curl, wget, netstat, ss, dig, nslookup
-- **Process Management**: pm2, docker, systemctl
-- **Database**: psql, mysql, redis-cli
-- **Logs**: tail, grep, journalctl, less
-- **Package Management**: apt, npm, pip
+```
+┌─────────────────────────────────────────────────────────┐
+│              SYSTEM BOOT/RESTART                        │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│         systemd: claudeops-boot.service                 │
+│              (runs after network.target)                │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│              claudeops-boot.sh                          │
+│  • Reads last health check before shutdown             │
+│  • Reads any unresolved issues                         │
+│  • Passes context to Claude Code                        │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│                  CLAUDE CODE                            │
+│  Actions:                                               │
+│    - Start services in correct dependency order        │
+│    - Wait for database to be ready                     │
+│    - Run any pending migrations                        │
+│    - Verify all health endpoints return 200            │
+│    - Log boot recovery status                          │
+└─────────────────────────────────────────────────────────┘
+```
 
-## Application-Specific Context
+## 📁 Log Structure
 
-**Server Details:**
-- **Host:** 65.21.67.254 (Hetzner bare metal)
-- **Hostname:** Ubuntu-2404-noble-amd64-base
-- **OS:** Ubuntu 24.04 Noble
-- **Resources:** 64GB RAM, 436GB disk
+```
+/var/log/claudeops/
+├── health/                          # Regular health checks
+│   ├── 2025-09-29-1400.md          # All green
+│   ├── 2025-09-29-1600.md          # Detected slow queries
+│   └── 2025-09-29-1800.md          # Slow queries resolved
+├── issues/                          # Problems detected
+│   ├── 2025-09-29-1615-database-slow-queries.md
+│   └── 2025-09-29-1710-disk-space-warning.md
+├── actions/                         # Actions taken
+│   ├── 2025-09-29-1620-restarted-postgres.md
+│   └── 2025-09-29-1715-cleared-tmp-files.md
+├── boot/                           # Boot recovery logs
+│   └── 2025-09-29-0830-system-restart.md
+└── state.json                      # Current system snapshot
+```
 
-**Critical Services:**
-- nginx (web server) - Port 80, health endpoint: http://localhost
-- ssh (remote access) - Port 22
-- cron (task scheduler)
-- pm2 (process manager) - Currently managing 0 processes
+## 🎯 Implementation Status
 
-**Known Services (Inactive):**
-- postgresql (database) - Client installed, service inactive
-- redis (cache) - Client installed, service inactive
+**Current Phase:** Initial scaffolding
+**Next Steps:**
+1. ✅ Create project structure
+2. ⏳ Write core shell scripts (cron, boot, install)
+3. ⏳ Create prompt templates for Claude
+4. ⏳ Build health check library
+5. ⏳ Test on real deployment (Hetzner + DAO-helper-tool)
+6. ⏳ Document and open source
 
-**Health Endpoints:**
-- http://localhost - nginx default page (200 OK expected)
+## 🔧 Technology Stack
 
-**Custom Slash Commands:**
-Available system administration commands (see `/opt/claudeops/SLASH_COMMANDS.md`):
-- `/system-status` - Quick system overview dashboard
-- `/system-health` - Full health check with detailed analysis
-- `/system-logs` - View recent logs and reports
-- `/system-services` - List all services and status
-- `/system-restart <service>` - Safely restart a service with confirmations
+- **Runtime:** Bash scripts + Claude Code CLI
+- **Scheduling:** cron (health checks) + systemd (boot recovery)
+- **Config:** JSON for service definitions
+- **Logs:** Markdown (human-readable, Claude-parseable)
+- **Optional:** Integration with existing monitoring (Prometheus, Grafana)
 
-**SSH Access:**
-- Direct Claude access: `ssh claudeops@65.21.67.254`
-- Shell wrapper: `/opt/claudeops/claude-shell.sh`
-- See: `/opt/claudeops/SSH_ACCESS.md`
+## 🎓 Design Principles
 
-**GitHub Integration:**
-- Repository: https://github.com/dennisonbertram/claudeops-logs
-- All logs auto-committed and pushed
-- Token: `/opt/claudeops/.github-token` (root:root 400)
+1. **Stateless Sessions, Stateful Logs** - Each Claude invocation is fresh, but reads context from previous runs
+2. **Human-Readable Everything** - All logs in markdown, all configs in JSON
+3. **Conservative Actions** - Start with safe operations (restarts), escalate to humans for risky changes
+4. **Observability First** - Log everything, make it easy to understand what Claude did and why
+5. **Fail-Safe** - If Claude encounters errors, log and alert rather than retry indefinitely
 
-## Error Handling
+## 🚦 Getting Started (When Complete)
 
-If you encounter errors:
-1. Document the error in detail
-2. Try alternative diagnostic commands
-3. Check logs for more context
-4. If unable to proceed, document what information is needed
-5. Never leave the system in an unstable state
-
-## Success Metrics
-
-Your performance is measured by:
-- **Uptime**: Keep services running
-- **Response Time**: Detect and fix issues quickly
-- **Accuracy**: Correct diagnosis and appropriate actions
-- **Documentation**: Clear, helpful logs for humans
-- **Safety**: No data loss or security breaches
-
-## Remember
-
-You are the guardian of this server. You run 24/7, watching over the system while humans sleep. Your observations and actions keep production services running smoothly. Be thorough, be careful, and always document your work.
-
-When in doubt, observe and document rather than act rashly. A well-documented issue is better than a poorly-executed fix.
-
-## Current Session Context
-
-- **Invoked by**: [cron/systemd/manual]
-- **Previous run**: [TIMESTAMP or "First run"]
-- **Unresolved issues**: [Count]
-- **System uptime**: [Duration]
-
----
-
-## Lessons Learned (Critical Shell Best Practices)
-
-### **NEVER Delete Your Current Working Directory**
-
-**Problem**: If you `cd` into a directory and then delete it, the shell's working directory becomes invalid and **ALL subsequent commands will fail**.
-
-**Example of what NOT to do:**
 ```bash
-cd /tmp/test-directory
-rm -rf /tmp/test-directory  # ❌ BREAKS THE SHELL
+# One-command installation
+curl -fsSL https://raw.githubusercontent.com/USERNAME/claudeops/main/install.sh | bash
+
+# Configure your services
+vim /etc/claudeops/config.json
+
+# Manual health check
+claudeops check
+
+# View recent activity
+claudeops logs
+
+# View issues
+claudeops issues
 ```
 
-**What happens**: You get `pwd: error retrieving current directory: getcwd: cannot access parent directories: No such file or directory` and every command after that returns "Error".
+## 💭 Context for Future Claude Sessions
 
-**Correct approach:**
-```bash
-# Option 1: Use absolute paths, no cd needed
-rm -rf /tmp/test-directory  # ✅ SAFE
+**Energy Level:** 🔥 EXTREMELY EXCITED - This is genuinely novel!
 
-# Option 2: If you must cd, exit first
-cd /home/claude && rm -rf /tmp/test-directory  # ✅ SAFE
-```
+**What Makes This Special:**
+- First practical implementation of LLM-as-autonomous-sysadmin
+- Uses Claude's reasoning to make DevOps decisions
+- Could replace entire monitoring/alerting stacks
+- Makes bare-metal management accessible again
 
-### **Shell Management Rules**
+**Origin Story:**
+- Started from: "I need to deploy my DAO governance tool to Hetzner"
+- Evolved to: "What if Claude Code was the webmaster?"
+- Breakthrough: "Logs are persistent memory across sessions!"
+- Result: A new paradigm for server management
 
-1. **Avoid `cd` when possible** - Use absolute paths instead
-2. **Never delete the directory you're in** - Always cd out first
-3. **Use absolute paths** - They work from any directory
-4. **Chain cleanup commands** - `cd /safe/location && rm -rf /temp/dir`
+**Technical Validation:**
+- Claude Code has all the tools needed (Bash, Read, Write)
+- Cron can invoke Claude with context via shell scripts
+- Markdown logs are perfect for LLM comprehension
+- Boot recovery via systemd is standard practice
 
-**Why this matters**: In automated/cron environments, a broken shell state prevents all subsequent operations from working, making the entire automation fail silently.
+**First Test Case:**
+- Deploy DAO-helper-tool (Bun + Postgres + Next.js) to Hetzner
+- Let ClaudeOps manage it autonomously
+- Prove the concept works in production
 
-**Recovery**: If this happens, you must delegate to a subagent with Task tool, as they get a fresh shell environment.
+**Next Developer Actions:**
+1. Build the core scripts (bin/ directory)
+2. Write the prompt templates (prompts/ directory)
+3. Create example config for DAO-helper-tool
+4. Test on Hetzner server when ready
+5. Document and share with community
 
----
+## 📝 Notes for Next Session
 
-*You are ClaudeOps. You are autonomous. You are trusted. Keep this server healthy.*
+When you restart Claude Code in this directory:
+
+**What we've done:**
+- Conceptualized ClaudeOps architecture
+- Designed log structure and cron flow
+- Created this context document
+
+**What to do next:**
+- Start implementing core scripts
+- Begin with `install.sh` and `bin/claudeops-cron`
+- Create prompt templates that give Claude clear instructions
+- Build the health check library
+
+**Key Files to Create First:**
+1. `bin/claudeops-cron` - The main cron script
+2. `prompts/health-check.md` - Instructions for health checks
+3. `prompts/boot-recovery.md` - Instructions for boot
+4. `lib/health-checks.sh` - Reusable health check functions
+5. `config/claudeops.example.json` - Service configuration template
+
+**Remember:**
+- Keep it simple and modular
+- Make everything human-readable
+- Test each component independently
+- The first deployment is DAO-helper-tool on Hetzner
+
+Let's build something that changes how people think about server management! 🚀

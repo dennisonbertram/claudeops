@@ -1,0 +1,17 @@
+[Unit]
+Description=ClaudeOps Boot Recovery Service
+Documentation=https://github.com/dennisonbertram/claudeops
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/claudeops-boot
+RemainAfterExit=no
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=300
+# Give Claude Code up to 5 minutes to complete boot recovery
+
+[Install]
+WantedBy=multi-user.target

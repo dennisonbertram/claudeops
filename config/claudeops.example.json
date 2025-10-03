@@ -1,0 +1,124 @@
+{
+  "version": "1.0.0",
+  "deployment": {
+    "name": "my-application",
+    "type": "web-service",
+    "environment": "production"
+  },
+  "schedule": {
+    "health_check_interval": "*/120 * * * *",
+    "comment": "Run every 2 hours. Format: minute hour day month weekday"
+  },
+  "logging": {
+    "base_path": "/var/log/claudeops",
+    "retention_days": 30,
+    "max_context_logs": 3
+  },
+  "services": [
+    {
+      "name": "database",
+      "type": "postgresql",
+      "health_check": {
+        "command": "pg_isready -h localhost -p 5432",
+        "query": "SELECT 1;"
+      },
+      "restart_command": "sudo systemctl restart postgresql",
+      "critical": true
+    },
+    {
+      "name": "backend",
+      "type": "node",
+      "health_check": {
+        "endpoint": "http://localhost:3005/health",
+        "expected_status": 200,
+        "timeout_seconds": 5
+      },
+      "logs": {
+        "path": "/var/log/backend/error.log",
+        "error_patterns": ["ERROR", "FATAL", "Exception"]
+      },
+      "restart_command": "pm2 restart backend",
+      "depends_on": ["database"],
+      "critical": true
+    },
+    {
+      "name": "frontend",
+      "type": "nextjs",
+      "health_check": {
+        "endpoint": "http://localhost:3006",
+        "expected_status": 200,
+        "timeout_seconds": 5
+      },
+      "restart_command": "pm2 restart frontend",
+      "depends_on": ["backend"],
+      "critical": false
+    },
+    {
+      "name": "indexer",
+      "type": "cron-job",
+      "health_check": {
+        "command": "pgrep -f 'bun.*indexer'",
+        "log_freshness": {
+          "path": "/var/log/indexer/latest.log",
+          "max_age_minutes": 150
+        }
+      },
+      "restart_command": "systemctl restart indexer.service",
+      "depends_on": ["database", "backend"],
+      "critical": false
+    }
+  ],
+  "resources": {
+    "disk": {
+      "warning_threshold_percent": 80,
+      "critical_threshold_percent": 90,
+      "paths_to_monitor": ["/", "/var/log"]
+    },
+    "memory": {
+      "warning_threshold_percent": 85,
+      "critical_threshold_percent": 95
+    },
+    "cpu": {
+      "warning_threshold_percent": 80,
+      "sustained_minutes": 10
+    }
+  },
+  "alerts": {
+    "email": {
+      "enabled": false,
+      "to": "admin@example.com",
+      "smtp": {
+        "host": "smtp.example.com",
+        "port": 587,
+        "from": "claudeops@example.com"
+      }
+    },
+    "webhook": {
+      "enabled": false,
+      "url": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+      "on_critical_only": true
+    }
+  },
+  "actions": {
+    "max_restarts_per_hour": 3,
+    "require_approval_for": [
+      "database_restart",
+      "system_reboot",
+      "disk_cleanup"
+    ],
+    "auto_approve": [
+      "service_restart",
+      "cache_clear",
+      "log_rotation"
+    ]
+  },
+  "custom_checks": [
+    {
+      "name": "api_rate_limit",
+      "description": "Check if we're approaching API rate limits",
+      "command": "grep 'rate_limit_remaining' /var/log/backend/access.log | tail -1",
+      "warning_pattern": "rate_limit_remaining: [0-9]{1,2}$",
+      "frequency": "every_check"
+    }
+  ]
+}

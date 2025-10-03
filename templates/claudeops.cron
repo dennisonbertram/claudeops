@@ -1,0 +1,22 @@
+# ClaudeOps Cron Job
+# Runs health checks on a schedule
+#
+# Default: Every 2 hours
+# Customize the schedule by editing the cron expression below
+#
+# Cron format: minute hour day month weekday
+# Examples:
+#   */30 * * * *    - Every 30 minutes
+#   0 */2 * * *     - Every 2 hours (default)
+#   0 */6 * * *     - Every 6 hours
+#   0 9,21 * * *    - At 9 AM and 9 PM
+#
+# Note: Health checks should complete within the interval to avoid overlaps
+
+# Run every 2 hours (default)
+0 */2 * * * root /usr/local/bin/claudeops-cron 2>&1 | logger -t claudeops
+
+# Alternative schedules (uncomment one if you want to change):
+# */30 * * * * root /usr/local/bin/claudeops-cron 2>&1 | logger -t claudeops  # Every 30 min
+# 0 */6 * * * root /usr/local/bin/claudeops-cron 2>&1 | logger -t claudeops   # Every 6 hours
+# 0 * * * * root /usr/local/bin/claudeops-cron 2>&1 | logger -t claudeops     # Every hour

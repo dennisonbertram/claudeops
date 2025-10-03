@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ClaudeOps Cron Runner
+# This script runs on schedule to perform health checks
+# It reads previous logs as context and invokes Claude Code
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLAUDEOPS_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Check if running from installed location or development
+if [ -d "/usr/local/share/claudeops/prompts" ]; then
+    PROMPTS_DIR="/usr/local/share/claudeops/prompts"
+else
+    PROMPTS_DIR="$CLAUDEOPS_ROOT/prompts"
+fi
+
+CONFIG_FILE="${CONFIG_FILE:-/etc/claudeops/config.json}"
+LOG_BASE="${LOG_BASE:-/var/log/claudeops}"
+
+# Ensure log directories exist
+mkdir -p "$LOG_BASE"/{health,issues,actions,boot}
+
+# Generate timestamp for this run
+TIMESTAMP=$(date +"%Y-%m-%d-%H%M")
+HEALTH_LOG="$LOG_BASE/health/$TIMESTAMP.md"
+
+# Check if Claude Code is available
+if ! command -v claude &> /dev/null; then
+    echo "ERROR: Claude Code CLI not found!" >&2
+    echo "Install with: npm install -g @anthropics/claude-code" >&2
+    exit 1
+fi
+
+# Check if config exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "ERROR: Configuration file not found: $CONFIG_FILE" >&2
+    echo "Run 'claudeops-setup' first to create configuration" >&2
+    exit 1
+fi
+
+# Get the last 3 health check logs for context
+LAST_LOGS=""
+LOG_COUNT=0
+for log in $(ls -t "$LOG_BASE/health/"*.md 2>/dev/null | head -n 3); do
+    LOG_COUNT=$((LOG_COUNT + 1))
+    LAST_LOGS="$LAST_LOGS
+
+=== Previous Health Check #$LOG_COUNT ===
+File: $(basename "$log")
+
+$(cat "$log")
+"
+done
+
+if [ -z "$LAST_LOGS" ]; then
+    LAST_LOGS="No previous health checks found. This is your first run."
+fi
+
+# Get any unresolved issues
+OPEN_ISSUES=""
+ISSUE_COUNT=0
+if [ -d "$LOG_BASE/issues" ]; then
+    for issue in $(ls -t "$LOG_BASE/issues/"*.md 2>/dev/null); do
+        # Simple check: if issue file contains "Status: RESOLVED", skip it
+        if ! grep -q "Status:.*RESOLVED" "$issue"; then
+            ISSUE_COUNT=$((ISSUE_COUNT + 1))
+            OPEN_ISSUES="$OPEN_ISSUES
+
+=== Open Issue #$ISSUE_COUNT ===
+File: $(basename "$issue")
+
+$(cat "$issue")
+"
+        fi
+    done
+fi
+
+if [ -z "$OPEN_ISSUES" ]; then
+    OPEN_ISSUES="No unresolved issues."
+fi
+
+# Create the prompt for Claude by combining the template with current context
+TEMP_PROMPT=$(mktemp)
+cat > "$TEMP_PROMPT" << EOF
+CURRENT TIMESTAMP: $(date +"%Y-%m-%d %H:%M:%S")
+HOSTNAME: $(hostname)
+CONFIG FILE: $CONFIG_FILE
+
+=== CONFIGURATION ===
+$(cat "$CONFIG_FILE")
+
+=== PREVIOUS HEALTH CHECKS ===
+$LAST_LOGS
+
+=== UNRESOLVED ISSUES ===
+$OPEN_ISSUES
+
+================================
+NOW EXECUTE YOUR HEALTH CHECK
+================================
+
+$(cat "$PROMPTS_DIR/health-check.md")
+
+IMPORTANT: Write your health check report to: $HEALTH_LOG
+IMPORTANT: Create issue logs in: $LOG_BASE/issues/
+IMPORTANT: Create action logs in: $LOG_BASE/actions/
+
+Begin your health check now.
+EOF
+
+# Log that we're starting
+echo "[$(date)] ClaudeOps health check starting..." >> "$LOG_BASE/claudeops.log"
+
+# Run Claude API with the prepared prompt
+# Redirect output to both stdout and the log file
+claude-api --prompt "$(cat "$TEMP_PROMPT")" --print 2>&1 | tee -a "$LOG_BASE/claudeops.log"
+
+# Cleanup
+rm -f "$TEMP_PROMPT"
+
+# Log completion
+echo "[$(date)] ClaudeOps health check completed" >> "$LOG_BASE/claudeops.log"
+echo "" >> "$LOG_BASE/claudeops.log"
+
+# Check if the health log was actually created
+if [ -f "$HEALTH_LOG" ]; then
+    echo "✓ Health check report created: $HEALTH_LOG"
+
+    # Check status in the health log
+    if grep -q "Status:.*CRITICAL" "$HEALTH_LOG"; then
+        echo "⚠️  CRITICAL issues detected! Check $HEALTH_LOG" >&2
+        exit 2
+    elif grep -q "Status:.*WARNING" "$HEALTH_LOG"; then
+        echo "⚠️  Warnings detected. Check $HEALTH_LOG"
+        exit 1
+    else
+        echo "✓ System healthy"
+        exit 0
+    fi
+else
+    echo "ERROR: Health check did not create expected log file: $HEALTH_LOG" >&2
+    exit 3
+fi
