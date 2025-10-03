@@ -1,0 +1,11 @@
+# Ignore sensitive files
+.github-token
+*.key
+*.pem
+
+# Ignore backups
+backup-*/
+
+# Ignore temp files
+*.log
+*.tmp
